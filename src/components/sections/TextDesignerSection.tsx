@@ -16,6 +16,13 @@ export interface TextLayerData {
   shadowBlur: number;
   shadowColor: string;
   scale: number;
+  strokeEnabled: boolean;
+  strokeWidth: number;
+  strokeColor: string;
+  gradientEnabled: boolean;
+  gradientColor1: string;
+  gradientColor2: string;
+  gradientAngle: number;
 }
 
 export type CtaPattern = "solid" | "outline" | "gradient" | "pill" | "ghost";
@@ -47,8 +54,8 @@ interface Preset {
 
 export function defaultTextLayers(): TextLayersState {
   return {
-    header:  { text:"", fontFamily:"var(--font-syne), sans-serif",  fontSize:52, fontWeight:700, color:"#ffffff", x:50, y:35, shadowEnabled:false, shadowBlur:6,  shadowColor:"rgba(0,0,0,0.65)", scale:1 },
-    subtext: { text:"", fontFamily:"var(--font-space), sans-serif", fontSize:26, fontWeight:400, color:"#ffffff", x:50, y:55, shadowEnabled:false, shadowBlur:4,  shadowColor:"rgba(0,0,0,0.5)",  scale:1 },
+    header:  { text:"", fontFamily:"var(--font-syne), sans-serif",  fontSize:52, fontWeight:700, color:"#ffffff", x:50, y:35, shadowEnabled:false, shadowBlur:6,  shadowColor:"rgba(0,0,0,0.65)", scale:1, strokeEnabled:false, strokeWidth:2, strokeColor:"#000000", gradientEnabled:false, gradientColor1:"#ff6b6b", gradientColor2:"#ffd93d", gradientAngle:135 },
+    subtext: { text:"", fontFamily:"var(--font-space), sans-serif", fontSize:26, fontWeight:400, color:"#ffffff", x:50, y:55, shadowEnabled:false, shadowBlur:4,  shadowColor:"rgba(0,0,0,0.5)",  scale:1, strokeEnabled:false, strokeWidth:1, strokeColor:"#000000", gradientEnabled:false, gradientColor1:"#6bcb77", gradientColor2:"#4d96ff", gradientAngle:135 },
     cta: { text:"", x:50, y:72, bgColor:"#1976d2", textColor:"#ffffff", pattern:"solid", fontSize:16, fontFamily:"var(--font-space), sans-serif", borderRadius:10, scale:1, enabled:false },
   };
 }
@@ -161,7 +168,12 @@ export default function TextDesignerSection({ imageUrl, extractedColors, layers,
   }
 
   function loadPreset(p: Preset) {
-    onLayersChange(p.layers);
+    const d = defaultTextLayers();
+    onLayersChange({
+      header:  { ...d.header,  ...p.layers.header  },
+      subtext: { ...d.subtext, ...p.layers.subtext },
+      cta:     { ...d.cta,     ...p.layers.cta     },
+    });
   }
 
   function deletePreset(name: string) {
@@ -255,13 +267,23 @@ export default function TextDesignerSection({ imageUrl, extractedColors, layers,
                   transform:`translate(-50%,-50%) scale(${l.scale})`,
                   cursor:"grab", userSelect:"none",
                   fontFamily:l.fontFamily, fontSize:l.fontSize, fontWeight:l.fontWeight,
-                  color: isEmpty ? "rgba(255,255,255,0.3)" : l.color,
                   fontStyle: isEmpty ? "italic" : "normal",
                   textShadow: l.shadowEnabled ? `2px 2px ${l.shadowBlur}px ${l.shadowColor}` : "none",
                   whiteSpace:"nowrap", lineHeight:1.1,
                   outline: isActive ? "2px dashed rgba(255,255,255,0.75)" : "none",
                   outlineOffset: isActive ? 5 : 0,
                   padding:"2px 4px", borderRadius:2, pointerEvents:"all",
+                  // stroke
+                  WebkitTextStroke: (!isEmpty && l.strokeEnabled) ? `${l.strokeWidth}px ${l.strokeColor}` : undefined,
+                  // gradient overrides solid color
+                  ...(isEmpty ? { color:"rgba(255,255,255,0.3)" }
+                    : l.gradientEnabled ? {
+                        background:`linear-gradient(${l.gradientAngle}deg, ${l.gradientColor1}, ${l.gradientColor2})`,
+                        WebkitBackgroundClip:"text",
+                        WebkitTextFillColor:"transparent",
+                        backgroundClip:"text",
+                      }
+                    : { color:l.color }),
                 }}
               >
                 {isEmpty ? (key === "header" ? "Header text" : "Subtext") : l.text}
@@ -486,6 +508,87 @@ export default function TextDesignerSection({ imageUrl, extractedColors, layers,
                         style={{ width:36, height:30, border:"2px solid rgba(0,0,0,0.15)", borderRadius:6, cursor:"pointer", padding:2 }} />
                       <span style={{ fontSize:12, color:"#4a6a8a" }}>Shadow color</span>
                     </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Stroke */}
+              <div>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+                  <LabelEl style={{ margin:0 }}>Stroke</LabelEl>
+                  <label style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer" }}>
+                    <input type="checkbox" checked={l.strokeEnabled} onChange={e => updateLayer(key, { strokeEnabled:e.target.checked })}
+                      style={{ accentColor:"#1976d2", width:15, height:15 }} />
+                    <span style={{ fontSize:12, color:"#4a6a8a" }}>{l.strokeEnabled ? "On" : "Off"}</span>
+                  </label>
+                </div>
+                {l.strokeEnabled && (
+                  <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                    <div>
+                      <LabelEl>Width — {l.strokeWidth}px</LabelEl>
+                      <input type="range" min={1} max={12} step={0.5} value={l.strokeWidth}
+                        onChange={e => updateLayer(key, { strokeWidth:+e.target.value })} style={{ width:"100%", accentColor:"#1976d2" }} />
+                    </div>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <input type="color" value={l.strokeColor}
+                        onChange={e => updateLayer(key, { strokeColor:e.target.value })}
+                        style={{ width:36, height:30, border:"2px solid rgba(0,0,0,0.15)", borderRadius:6, cursor:"pointer", padding:2 }} />
+                      <span style={{ fontSize:12, color:"#4a6a8a" }}>Stroke color</span>
+                      <code style={{ fontSize:11, color:"#0a1e38", background:"rgba(0,0,0,0.06)", padding:"2px 6px", borderRadius:4 }}>{l.strokeColor.toUpperCase()}</code>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Text Gradient */}
+              <div>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+                  <LabelEl style={{ margin:0 }}>Text Gradient</LabelEl>
+                  <label style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer" }}>
+                    <input type="checkbox" checked={l.gradientEnabled} onChange={e => updateLayer(key, { gradientEnabled:e.target.checked })}
+                      style={{ accentColor:"#1976d2", width:15, height:15 }} />
+                    <span style={{ fontSize:12, color:"#4a6a8a" }}>{l.gradientEnabled ? "On" : "Off"}</span>
+                  </label>
+                </div>
+                {l.gradientEnabled && (
+                  <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                    {/* Live gradient preview */}
+                    <div style={{
+                      padding:"8px 12px", borderRadius:8,
+                      background:`linear-gradient(${l.gradientAngle}deg, ${l.gradientColor1}, ${l.gradientColor2})`,
+                      textAlign:"center", fontSize:15, fontWeight:700,
+                      WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
+                      backgroundClip:"text", border:"1px solid rgba(0,0,0,0.1)",
+                      fontFamily:l.fontFamily,
+                    }}>
+                      {l.text || "Preview"}
+                    </div>
+                    <div style={{ display:"flex", gap:10 }}>
+                      <div style={{ flex:1 }}>
+                        <LabelEl>Color 1</LabelEl>
+                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                          <input type="color" value={l.gradientColor1}
+                            onChange={e => updateLayer(key, { gradientColor1:e.target.value })}
+                            style={{ width:36, height:30, border:"2px solid rgba(0,0,0,0.15)", borderRadius:6, cursor:"pointer", padding:2 }} />
+                          <code style={{ fontSize:10, color:"#0a1e38", background:"rgba(0,0,0,0.06)", padding:"2px 5px", borderRadius:4 }}>{l.gradientColor1.toUpperCase()}</code>
+                        </div>
+                      </div>
+                      <div style={{ flex:1 }}>
+                        <LabelEl>Color 2</LabelEl>
+                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                          <input type="color" value={l.gradientColor2}
+                            onChange={e => updateLayer(key, { gradientColor2:e.target.value })}
+                            style={{ width:36, height:30, border:"2px solid rgba(0,0,0,0.15)", borderRadius:6, cursor:"pointer", padding:2 }} />
+                          <code style={{ fontSize:10, color:"#0a1e38", background:"rgba(0,0,0,0.06)", padding:"2px 5px", borderRadius:4 }}>{l.gradientColor2.toUpperCase()}</code>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <LabelEl>Angle — {l.gradientAngle}°</LabelEl>
+                      <input type="range" min={0} max={360} step={5} value={l.gradientAngle}
+                        onChange={e => updateLayer(key, { gradientAngle:+e.target.value })} style={{ width:"100%", accentColor:"#1976d2" }} />
+                    </div>
+                    <p style={{ fontSize:11, color:"#6a8aaa", margin:0 }}>Gradient overrides the solid text color above.</p>
                   </div>
                 )}
               </div>
