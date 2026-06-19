@@ -6,7 +6,6 @@ import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
 import UploadSection from "@/components/sections/UploadSection";
 import RecommendationsSection from "@/components/sections/RecommendationsSection";
-import PreviewSection from "@/components/sections/PreviewSection";
 import TextDesignerSection, { defaultTextLayers } from "@/components/sections/TextDesignerSection";
 import type { TextLayersState } from "@/components/sections/TextDesignerSection";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -16,7 +15,6 @@ const PAGE_BG = "linear-gradient(160deg, #c8e8ff 0%, #ddeeff 40%, #e8f4ff 100%)"
 export default function UploadPage() {
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [extractedColors, setExtractedColors] = useState<string[]>([]);
-  const [selectedTextColor] = useState<string>("#0A1E38");
   const [textLayers, setTextLayers] = useState<TextLayersState>(defaultTextLayers());
 
   function handleColorsExtracted(colors: string[], imageUrl: string) {
@@ -30,8 +28,6 @@ export default function UploadPage() {
     setExtractedColors([]);
     setTextLayers(defaultTextLayers());
   }
-
-  const baseColor = extractedColors[0] ?? "#1976D2";
 
   const blobs = (
     <div aria-hidden style={{ position:"fixed", inset:0, zIndex:0, pointerEvents:"none", overflow:"hidden" }}>
@@ -69,13 +65,6 @@ export default function UploadPage() {
             <section style={{ width:"100%", padding:"72px 60px" }}>
               <SectionHeader title="Smart Text Recommendations" subtitle="AI-ranked text colors evaluated against WCAG contrast standards — so your typography stays accessible on every background." />
               <RecommendationsSection dominantColors={extractedColors} imageUrl={uploadedImageUrl} layers={textLayers} onLayersChange={setTextLayers} />
-            </section>
-          )}
-
-          {uploadedImageUrl && (
-            <section style={{ width:"100%", padding:"72px 60px", background:"rgba(255,255,255,0.45)" }}>
-              <SectionHeader title="Visual Preview" subtitle="See how your design looks across desktop, mobile, and social media formats — your text layers included." />
-              <PreviewSection imageUrl={uploadedImageUrl} textColor={selectedTextColor} bgColor={baseColor} layers={textLayers} />
             </section>
           )}
 
