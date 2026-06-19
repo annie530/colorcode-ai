@@ -1,16 +1,14 @@
 "use client";
 
 import Navbar from "@/components/Navbar";
-import Hero from "@/components/Hero";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
-import ColorCodeSection from "@/components/sections/ColorCodeSection";
-import PaletteSection from "@/components/sections/PaletteSection";
+import ColorTheorySection from "@/components/sections/ColorTheorySection";
 import { SectionHeader } from "@/components/SectionHeader";
 
 const PAGE_BG = "linear-gradient(160deg, #c8e8ff 0%, #ddeeff 40%, #e8f4ff 100%)";
 
-export default function Home() {
+export default function ColorTheoryPage() {
   return (
     <div style={{ position: "relative", minHeight: "100vh", overflowX: "hidden", background: PAGE_BG }}>
 
@@ -23,22 +21,12 @@ export default function Home() {
       <div style={{ position: "relative", zIndex: 1 }}>
         <Navbar />
         <main>
-          <Hero />
-
           <section style={{ width: "100%", padding: "72px 60px" }}>
             <SectionHeader
-              title="Color Code Generator"
-              subtitle="Pick any color and instantly convert it to HEX, RGB, HSL, and CMYK — copy straight into your design tool or code."
+              title="Learn Color Theory"
+              subtitle="The principles behind effective color choices — from the color wheel and harmony rules to the psychology of hue, saturation, and contrast."
             />
-            <ColorCodeSection colors={[]} />
-          </section>
-
-          <section style={{ width: "100%", padding: "72px 60px", background: "rgba(255,255,255,0.45)" }}>
-            <SectionHeader
-              title="Alternative Palettes"
-              subtitle="Explore five harmony types built from any base color — complementary, analogous, triadic, monochromatic, split-complementary."
-            />
-            <PaletteSection baseColor="#1976D2" />
+            <ColorTheorySection />
           </section>
         </main>
         <Footer />
