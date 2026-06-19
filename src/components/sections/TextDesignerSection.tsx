@@ -30,6 +30,7 @@ export interface CtaButtonData {
   fontSize: number;
   fontFamily: string;
   borderRadius: number;
+  scale: number;
   enabled: boolean;
 }
 
@@ -43,7 +44,7 @@ export function defaultTextLayers(): TextLayersState {
   return {
     header:  { text:"", fontFamily:"var(--font-syne), sans-serif",  fontSize:52, fontWeight:700, color:"#ffffff", x:50, y:35, shadowEnabled:false, shadowBlur:6,  shadowColor:"rgba(0,0,0,0.65)", scale:1 },
     subtext: { text:"", fontFamily:"var(--font-space), sans-serif", fontSize:26, fontWeight:400, color:"#ffffff", x:50, y:55, shadowEnabled:false, shadowBlur:4,  shadowColor:"rgba(0,0,0,0.5)",  scale:1 },
-    cta: { text:"", x:50, y:72, bgColor:"#1976d2", textColor:"#ffffff", pattern:"solid", fontSize:16, fontFamily:"var(--font-space), sans-serif", borderRadius:10, enabled:false },
+    cta: { text:"", x:50, y:72, bgColor:"#1976d2", textColor:"#ffffff", pattern:"solid", fontSize:16, fontFamily:"var(--font-space), sans-serif", borderRadius:10, scale:1, enabled:false },
   };
 }
 
@@ -235,7 +236,7 @@ export default function TextDesignerSection({ imageUrl, extractedColors, layers,
               onMouseDown={(e) => { e.preventDefault(); draggingRef.current = "cta"; setActiveTab("cta"); }}
               style={{
                 position:"absolute", left:`${layers.cta.x}%`, top:`${layers.cta.y}%`,
-                transform:"translate(-50%,-50%)",
+                transform:`translate(-50%,-50%) scale(${layers.cta.scale})`,
                 pointerEvents:"all",
                 outline: activeTab === "cta" ? "2px dashed rgba(255,255,255,0.75)" : "none",
                 outlineOffset: activeTab === "cta" ? 5 : 0,
@@ -470,6 +471,13 @@ export default function TextDesignerSection({ imageUrl, extractedColors, layers,
                       onChange={e => updateCta({ borderRadius:+e.target.value })} style={{ width:"100%", accentColor:"#1976d2" }} />
                   </div>
                 )}
+
+                {/* Scale */}
+                <div>
+                  <LabelEl>Scale — {layers.cta.scale.toFixed(2)}×</LabelEl>
+                  <input type="range" min={0.5} max={3} step={0.05} value={layers.cta.scale}
+                    onChange={e => updateCta({ scale:+e.target.value })} style={{ width:"100%", accentColor:"#1976d2" }} />
+                </div>
 
                 {/* Button color */}
                 <div>

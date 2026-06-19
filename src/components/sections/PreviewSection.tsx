@@ -42,7 +42,7 @@ function DesignComposite({ imageUrl, layers, displayWidth }: {
       {layers?.cta.enabled && (
         <div style={{
           position:"absolute", left:`${layers.cta.x}%`, top:`${layers.cta.y}%`,
-          transform:"translate(-50%,-50%)",
+          transform:`translate(-50%,-50%) scale(${layers.cta.scale})`,
           pointerEvents:"none", userSelect:"none",
           ...ctaButtonCss(layers.cta),
           fontSize: layers.cta.fontSize * fontScale,

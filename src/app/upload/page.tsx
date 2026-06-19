@@ -68,7 +68,7 @@ export default function UploadPage() {
           {uploadedImageUrl && extractedColors.length > 0 && (
             <section style={{ width:"100%", padding:"72px 60px" }}>
               <SectionHeader title="Smart Text Recommendations" subtitle="AI-ranked text colors evaluated against WCAG contrast standards — so your typography stays accessible on every background." />
-              <RecommendationsSection dominantColors={extractedColors} imageUrl={uploadedImageUrl} />
+              <RecommendationsSection dominantColors={extractedColors} imageUrl={uploadedImageUrl} layers={textLayers} onLayersChange={setTextLayers} />
             </section>
           )}
 
