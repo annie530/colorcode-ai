@@ -216,6 +216,81 @@ function LivePreview({ imageUrl, layers }: { imageUrl: string; layers?: TextLaye
   );
 }
 
+// ─── Custom Color Tester ──────────────────────────────────────────────────────
+
+function CustomColorTester({ bgColor, imageUrl, layers, onLayersChange }: {
+  bgColor: string;
+  imageUrl: string;
+  layers?: TextLayersState;
+  onLayersChange?: (l: TextLayersState) => void;
+}) {
+  const [testColor, setTestColor] = useState("#ffffff");
+  const ratio = contrastHex(testColor, bgColor);
+  const label = wcagLabel(ratio);
+  const col = wcagColor(ratio);
+
+  return (
+    <div style={{ background:"rgba(255,255,255,0.6)", backdropFilter:"blur(12px)", border:"1.5px solid rgba(25,118,210,0.2)", borderRadius:14, padding:"18px 20px", display:"flex", flexDirection:"column", gap:14 }}>
+      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+        <span style={{ fontSize:18 }}>🎨</span>
+        <span style={{ fontSize:13, fontWeight:700, color:"#0a1e38" }}>Test a Custom Color</span>
+        <span style={{ marginLeft:"auto", fontSize:11, color:"#4a6a8a" }}>Pick any color to check visibility</span>
+      </div>
+
+      {/* Picker + ratio */}
+      <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+        <input
+          type="color"
+          value={testColor}
+          onChange={e => setTestColor(e.target.value)}
+          style={{ width:52, height:52, border:"2px solid rgba(25,118,210,0.3)", borderRadius:10, cursor:"pointer", padding:3, background:"white", flexShrink:0 }}
+        />
+        <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+          <code style={{ fontSize:13, fontFamily:"monospace", fontWeight:700, color:"#0a1e38" }}>{testColor.toUpperCase()}</code>
+          <span style={{ fontSize:11, fontWeight:700, color:col, background:`${col}18`, border:`1px solid ${col}40`, padding:"2px 10px", borderRadius:20, display:"inline-block" }}>
+            {label} {ratio.toFixed(1)}:1 vs image bg
+          </span>
+        </div>
+      </div>
+
+      {/* Mini preview of color on image */}
+      <div style={{ position:"relative", borderRadius:10, overflow:"hidden", border:"1px solid rgba(25,118,210,0.15)" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={imageUrl} alt="Preview" style={{ width:"100%", display:"block" }} />
+        <div style={{
+          position:"absolute", left:"50%", top:"50%",
+          transform:"translate(-50%,-50%)",
+          color:testColor,
+          fontSize:22, fontWeight:800,
+          fontFamily:"var(--font-syne, system-ui)",
+          textShadow:"0 2px 10px rgba(0,0,0,0.3)",
+          whiteSpace:"nowrap", pointerEvents:"none",
+        }}>
+          Sample Text
+        </div>
+      </div>
+
+      {/* Apply buttons */}
+      {onLayersChange && layers && (
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+          <button
+            onClick={() => onLayersChange({ ...layers, header: { ...layers.header, color:testColor, gradientEnabled:false } })}
+            style={{ fontSize:12, fontWeight:700, padding:"6px 14px", borderRadius:8, border:"1.5px solid rgba(25,118,210,0.3)", background:"rgba(25,118,210,0.08)", color:"#1565c0", cursor:"pointer" }}
+          >
+            Apply to Header
+          </button>
+          <button
+            onClick={() => onLayersChange({ ...layers, subtext: { ...layers.subtext, color:testColor, gradientEnabled:false } })}
+            style={{ fontSize:12, fontWeight:700, padding:"6px 14px", borderRadius:8, border:"1.5px solid rgba(25,118,210,0.3)", background:"rgba(25,118,210,0.08)", color:"#1565c0", cursor:"pointer" }}
+          >
+            Apply to Subtext
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface RecommendationsSectionProps {
@@ -321,6 +396,8 @@ export default function RecommendationsSection({ dominantColors, imageUrl, layer
             note={hasCtaText ? `Button text (${layers!.cta.textColor}) vs button background: ${contrastHex(layers!.cta.textColor, layers!.cta.bgColor).toFixed(1)}:1 ${wcagLabel(contrastHex(layers!.cta.textColor, layers!.cta.bgColor))}` : undefined}
             onApply={onLayersChange ? applyCtaColor : undefined}
           />
+
+          <CustomColorTester bgColor={bgHex} imageUrl={imageUrl} layers={layers} onLayersChange={onLayersChange} />
 
         </div>
       </div>

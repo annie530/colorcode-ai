@@ -155,6 +155,7 @@ function getContrastOptions(hue: number): ContrastOption[] {
 
 function ColorWheel() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDragging = useRef(false);
   const [selected, setSelected]       = useState<SelectedColor | null>(null);
   const [activeOption, setActiveOption] = useState<string | null>(null);
   const [customHex, setCustomHex]     = useState<string>("#ff6b35");
@@ -195,7 +196,7 @@ function ColorWheel() {
     }
   }, []);
 
-  function pickColorAt(e: React.MouseEvent<HTMLCanvasElement>) {
+  function pickColorFromEvent(e: React.MouseEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -212,6 +213,10 @@ function ColorWheel() {
 
     setSelected({ hue, sat, lightness, hex, name: hueName(hue) });
     setActiveOption(null);
+  }
+
+  function pickColorAt(e: React.MouseEvent<HTMLCanvasElement>) {
+    pickColorFromEvent(e);
   }
 
   function handleSearch(e: React.FormEvent) {
@@ -298,9 +303,13 @@ function ColorWheel() {
             ref={canvasRef}
             width={WHEEL_SIZE}
             height={WHEEL_SIZE}
+            onMouseDown={e => { isDragging.current = true; pickColorFromEvent(e); }}
+            onMouseMove={e => { if (isDragging.current) pickColorFromEvent(e); }}
+            onMouseUp={() => { isDragging.current = false; }}
+            onMouseLeave={() => { isDragging.current = false; }}
             onClick={pickColorAt}
             style={{ borderRadius: "50%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", cursor: "crosshair", display: "block" }}
-            aria-label="Interactive color wheel — click to select a color"
+            aria-label="Interactive color wheel — click or drag to select a color"
           />
           {cursorPos && (
             <div style={{
@@ -313,7 +322,6 @@ function ColorWheel() {
               boxShadow: "0 0 0 1.5px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.3)",
               background: selected?.hex,
               pointerEvents: "none",
-              transition: "left 0.08s, top 0.08s",
             }} />
           )}
         </div>

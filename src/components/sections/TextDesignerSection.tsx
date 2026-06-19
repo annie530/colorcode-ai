@@ -19,6 +19,7 @@ export interface TextLayerData {
   strokeEnabled: boolean;
   strokeWidth: number;
   strokeColor: string;
+  strokeRound: boolean;
   gradientEnabled: boolean;
   gradientColor1: string;
   gradientColor2: string;
@@ -54,8 +55,8 @@ interface Preset {
 
 export function defaultTextLayers(): TextLayersState {
   return {
-    header:  { text:"", fontFamily:"var(--font-syne), sans-serif",  fontSize:52, fontWeight:700, color:"#ffffff", x:50, y:35, shadowEnabled:false, shadowBlur:6,  shadowColor:"rgba(0,0,0,0.65)", scale:1, strokeEnabled:false, strokeWidth:2, strokeColor:"#000000", gradientEnabled:false, gradientColor1:"#ff6b6b", gradientColor2:"#ffd93d", gradientAngle:135 },
-    subtext: { text:"", fontFamily:"var(--font-space), sans-serif", fontSize:26, fontWeight:400, color:"#ffffff", x:50, y:55, shadowEnabled:false, shadowBlur:4,  shadowColor:"rgba(0,0,0,0.5)",  scale:1, strokeEnabled:false, strokeWidth:1, strokeColor:"#000000", gradientEnabled:false, gradientColor1:"#6bcb77", gradientColor2:"#4d96ff", gradientAngle:135 },
+    header:  { text:"", fontFamily:"var(--font-syne), sans-serif",  fontSize:52, fontWeight:700, color:"#ffffff", x:50, y:35, shadowEnabled:false, shadowBlur:6,  shadowColor:"rgba(0,0,0,0.65)", scale:1, strokeEnabled:false, strokeWidth:2, strokeColor:"#000000", strokeRound:false, gradientEnabled:false, gradientColor1:"#ff6b6b", gradientColor2:"#ffd93d", gradientAngle:135 },
+    subtext: { text:"", fontFamily:"var(--font-space), sans-serif", fontSize:26, fontWeight:400, color:"#ffffff", x:50, y:55, shadowEnabled:false, shadowBlur:4,  shadowColor:"rgba(0,0,0,0.5)",  scale:1, strokeEnabled:false, strokeWidth:1, strokeColor:"#000000", strokeRound:false, gradientEnabled:false, gradientColor1:"#6bcb77", gradientColor2:"#4d96ff", gradientAngle:135 },
     cta: { text:"", x:50, y:72, bgColor:"#1976d2", textColor:"#ffffff", pattern:"solid", fontSize:16, fontFamily:"var(--font-space), sans-serif", borderRadius:10, scale:1, enabled:false },
   };
 }
@@ -87,6 +88,17 @@ function lightenHex(hex: string, amt: number): string {
   const g = Math.min(255, parseInt(c.slice(2,4),16) + amt);
   const b = Math.min(255, parseInt(c.slice(4,6),16) + amt);
   return `#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;
+}
+
+function roundedStrokeShadowsArr(width: number, color: string): string[] {
+  const out: string[] = [];
+  for (let deg = 0; deg < 360; deg += 12) {
+    const rad = (deg * Math.PI) / 180;
+    const x = (Math.cos(rad) * width).toFixed(2);
+    const y = (Math.sin(rad) * width).toFixed(2);
+    out.push(`${x}px ${y}px 0 ${color}`);
+  }
+  return out;
 }
 
 export function ctaButtonCss(cta: CtaButtonData): React.CSSProperties {
@@ -125,7 +137,7 @@ const CTA_PATTERNS: { value: CtaPattern; label: string; desc: string }[] = [
 ];
 
 const SAFE = 8;
-const SNAP_ZONE = 6; // % — within this distance of 50% snaps to center
+const SNAP_ZONE = 6;
 const LS_KEY = "colorcode-presets";
 type DragKey = "header" | "subtext" | "cta";
 
@@ -258,6 +270,16 @@ export default function TextDesignerSection({ imageUrl, extractedColors, layers,
             const l = layers[key];
             const isEmpty = !l.text;
             const isActive = activeTab === key;
+
+            // Build combined textShadow: rounded stroke + drop shadow
+            const shadowParts: string[] = [];
+            if (!isEmpty && l.strokeEnabled && l.strokeRound) {
+              shadowParts.push(...roundedStrokeShadowsArr(l.strokeWidth, l.strokeColor));
+            }
+            if (l.shadowEnabled) {
+              shadowParts.push(`2px 2px ${l.shadowBlur}px ${l.shadowColor}`);
+            }
+
             return (
               <div
                 key={key}
@@ -268,14 +290,12 @@ export default function TextDesignerSection({ imageUrl, extractedColors, layers,
                   cursor:"grab", userSelect:"none",
                   fontFamily:l.fontFamily, fontSize:l.fontSize, fontWeight:l.fontWeight,
                   fontStyle: isEmpty ? "italic" : "normal",
-                  textShadow: l.shadowEnabled ? `2px 2px ${l.shadowBlur}px ${l.shadowColor}` : "none",
+                  textShadow: shadowParts.length ? shadowParts.join(", ") : "none",
                   whiteSpace:"nowrap", lineHeight:1.1,
                   outline: isActive ? "2px dashed rgba(255,255,255,0.75)" : "none",
                   outlineOffset: isActive ? 5 : 0,
                   padding:"2px 4px", borderRadius:2, pointerEvents:"all",
-                  // stroke
-                  WebkitTextStroke: (!isEmpty && l.strokeEnabled) ? `${l.strokeWidth}px ${l.strokeColor}` : undefined,
-                  // gradient overrides solid color
+                  WebkitTextStroke: (!isEmpty && l.strokeEnabled && !l.strokeRound) ? `${l.strokeWidth}px ${l.strokeColor}` : undefined,
                   ...(isEmpty ? { color:"rgba(255,255,255,0.3)" }
                     : l.gradientEnabled ? {
                         background:`linear-gradient(${l.gradientAngle}deg, ${l.gradientColor1}, ${l.gradientColor2})`,
@@ -463,93 +483,56 @@ export default function TextDesignerSection({ imageUrl, extractedColors, layers,
                 <input type="range" min={0.5} max={3} step={0.05} value={l.scale}
                   onChange={e => updateLayer(key, { scale:+e.target.value })} style={{ width:"100%", accentColor:"#1976d2" }} />
               </div>
+
+              {/* ── Text Color (Solid / Gradient) ── */}
               <div>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
                   <LabelEl style={{ margin:0 }}>Text Color</LabelEl>
-                  <span style={{ fontSize:11, fontWeight:700, color:wcagTagColor(cr), background:`${wcagTagColor(cr)}18`, padding:"2px 8px", borderRadius:5 }}>
-                    {wcagTag(cr)} {cr.toFixed(1)}:1
-                  </span>
+                  {!l.gradientEnabled && (
+                    <span style={{ fontSize:11, fontWeight:700, color:wcagTagColor(cr), background:`${wcagTagColor(cr)}18`, padding:"2px 8px", borderRadius:5 }}>
+                      {wcagTag(cr)} {cr.toFixed(1)}:1
+                    </span>
+                  )}
                 </div>
-                <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:8 }}>
-                  {recColors.map(c => {
-                    const isSelected = l.color === c;
-                    return (
-                      <button key={c} onClick={() => updateLayer(key, { color:c })} title={c}
-                        style={{ width:28, height:28, borderRadius:"50%", background:c, border:isSelected ? "3px solid #1976d2" : "2px solid rgba(0,0,0,0.18)", cursor:"pointer", flexShrink:0, boxShadow:isSelected ? "0 0 0 2px #fff, 0 0 0 4px #1976d2" : "none" }} />
-                    );
-                  })}
+
+                {/* Solid / Gradient toggle */}
+                <div style={{ display:"flex", borderRadius:8, overflow:"hidden", border:"1.5px solid rgba(25,118,210,0.2)", marginBottom:10 }}>
+                  <button
+                    onClick={() => updateLayer(key, { gradientEnabled:false })}
+                    style={{ flex:1, padding:"6px 0", border:"none", fontWeight:700, fontSize:11, textTransform:"uppercase", letterSpacing:"0.5px", cursor:"pointer", background:!l.gradientEnabled ? "#1976d2" : "transparent", color:!l.gradientEnabled ? "#fff" : "#4a6a8a", transition:"background 0.15s" }}
+                  >
+                    Solid
+                  </button>
+                  <button
+                    onClick={() => updateLayer(key, { gradientEnabled:true })}
+                    style={{ flex:1, padding:"6px 0", border:"none", fontWeight:700, fontSize:11, textTransform:"uppercase", letterSpacing:"0.5px", cursor:"pointer", background:l.gradientEnabled ? "#1976d2" : "transparent", color:l.gradientEnabled ? "#fff" : "#4a6a8a", transition:"background 0.15s" }}
+                  >
+                    Gradient
+                  </button>
                 </div>
-                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <input type="color" value={l.color} onChange={e => updateLayer(key, { color:e.target.value })}
-                    style={{ width:40, height:36, border:"2px solid rgba(25,118,210,0.3)", borderRadius:8, cursor:"pointer", padding:2, background:"white", flexShrink:0 }} />
-                  <span style={{ fontSize:12, color:"#4a6a8a" }}>Custom</span>
-                  <code style={{ fontSize:11, color:"#0a1e38", background:"rgba(0,0,0,0.06)", padding:"2px 6px", borderRadius:4 }}>{l.color.toUpperCase()}</code>
-                </div>
-              </div>
-              <div>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-                  <LabelEl style={{ margin:0 }}>Drop Shadow</LabelEl>
-                  <label style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer" }}>
-                    <input type="checkbox" checked={l.shadowEnabled} onChange={e => updateLayer(key, { shadowEnabled:e.target.checked })}
-                      style={{ accentColor:"#1976d2", width:15, height:15 }} />
-                    <span style={{ fontSize:12, color:"#4a6a8a" }}>{l.shadowEnabled ? "On" : "Off"}</span>
-                  </label>
-                </div>
-                {l.shadowEnabled && (
-                  <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                    <div>
-                      <LabelEl>Blur — {l.shadowBlur}px</LabelEl>
-                      <input type="range" min={0} max={30} step={1} value={l.shadowBlur}
-                        onChange={e => updateLayer(key, { shadowBlur:+e.target.value })} style={{ width:"100%", accentColor:"#1976d2" }} />
+
+                {/* Solid color controls */}
+                {!l.gradientEnabled && (
+                  <>
+                    <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:8 }}>
+                      {recColors.map(c => {
+                        const isSelected = l.color === c;
+                        return (
+                          <button key={c} onClick={() => updateLayer(key, { color:c })} title={c}
+                            style={{ width:28, height:28, borderRadius:"50%", background:c, border:isSelected ? "3px solid #1976d2" : "2px solid rgba(0,0,0,0.18)", cursor:"pointer", flexShrink:0, boxShadow:isSelected ? "0 0 0 2px #fff, 0 0 0 4px #1976d2" : "none" }} />
+                        );
+                      })}
                     </div>
                     <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                      <input type="color" value={"#000000"}
-                        onChange={e => updateLayer(key, { shadowColor:e.target.value })}
-                        style={{ width:36, height:30, border:"2px solid rgba(0,0,0,0.15)", borderRadius:6, cursor:"pointer", padding:2 }} />
-                      <span style={{ fontSize:12, color:"#4a6a8a" }}>Shadow color</span>
+                      <input type="color" value={l.color} onChange={e => updateLayer(key, { color:e.target.value })}
+                        style={{ width:40, height:36, border:"2px solid rgba(25,118,210,0.3)", borderRadius:8, cursor:"pointer", padding:2, background:"white", flexShrink:0 }} />
+                      <span style={{ fontSize:12, color:"#4a6a8a" }}>Custom</span>
+                      <code style={{ fontSize:11, color:"#0a1e38", background:"rgba(0,0,0,0.06)", padding:"2px 6px", borderRadius:4 }}>{l.color.toUpperCase()}</code>
                     </div>
-                  </div>
+                  </>
                 )}
-              </div>
 
-              {/* Stroke */}
-              <div>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-                  <LabelEl style={{ margin:0 }}>Stroke</LabelEl>
-                  <label style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer" }}>
-                    <input type="checkbox" checked={l.strokeEnabled} onChange={e => updateLayer(key, { strokeEnabled:e.target.checked })}
-                      style={{ accentColor:"#1976d2", width:15, height:15 }} />
-                    <span style={{ fontSize:12, color:"#4a6a8a" }}>{l.strokeEnabled ? "On" : "Off"}</span>
-                  </label>
-                </div>
-                {l.strokeEnabled && (
-                  <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                    <div>
-                      <LabelEl>Width — {l.strokeWidth}px</LabelEl>
-                      <input type="range" min={1} max={12} step={0.5} value={l.strokeWidth}
-                        onChange={e => updateLayer(key, { strokeWidth:+e.target.value })} style={{ width:"100%", accentColor:"#1976d2" }} />
-                    </div>
-                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                      <input type="color" value={l.strokeColor}
-                        onChange={e => updateLayer(key, { strokeColor:e.target.value })}
-                        style={{ width:36, height:30, border:"2px solid rgba(0,0,0,0.15)", borderRadius:6, cursor:"pointer", padding:2 }} />
-                      <span style={{ fontSize:12, color:"#4a6a8a" }}>Stroke color</span>
-                      <code style={{ fontSize:11, color:"#0a1e38", background:"rgba(0,0,0,0.06)", padding:"2px 6px", borderRadius:4 }}>{l.strokeColor.toUpperCase()}</code>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Text Gradient */}
-              <div>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-                  <LabelEl style={{ margin:0 }}>Text Gradient</LabelEl>
-                  <label style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer" }}>
-                    <input type="checkbox" checked={l.gradientEnabled} onChange={e => updateLayer(key, { gradientEnabled:e.target.checked })}
-                      style={{ accentColor:"#1976d2", width:15, height:15 }} />
-                    <span style={{ fontSize:12, color:"#4a6a8a" }}>{l.gradientEnabled ? "On" : "Off"}</span>
-                  </label>
-                </div>
+                {/* Gradient controls */}
                 {l.gradientEnabled && (
                   <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                     {/* Live gradient preview */}
@@ -588,7 +571,79 @@ export default function TextDesignerSection({ imageUrl, extractedColors, layers,
                       <input type="range" min={0} max={360} step={5} value={l.gradientAngle}
                         onChange={e => updateLayer(key, { gradientAngle:+e.target.value })} style={{ width:"100%", accentColor:"#1976d2" }} />
                     </div>
-                    <p style={{ fontSize:11, color:"#6a8aaa", margin:0 }}>Gradient overrides the solid text color above.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Drop Shadow ── */}
+              <div>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+                  <LabelEl style={{ margin:0 }}>Drop Shadow</LabelEl>
+                  <label style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer" }}>
+                    <input type="checkbox" checked={l.shadowEnabled} onChange={e => updateLayer(key, { shadowEnabled:e.target.checked })}
+                      style={{ accentColor:"#1976d2", width:15, height:15 }} />
+                    <span style={{ fontSize:12, color:"#4a6a8a" }}>{l.shadowEnabled ? "On" : "Off"}</span>
+                  </label>
+                </div>
+                {l.shadowEnabled && (
+                  <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                    <div>
+                      <LabelEl>Blur — {l.shadowBlur}px</LabelEl>
+                      <input type="range" min={0} max={30} step={1} value={l.shadowBlur}
+                        onChange={e => updateLayer(key, { shadowBlur:+e.target.value })} style={{ width:"100%", accentColor:"#1976d2" }} />
+                    </div>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <input type="color" value={"#000000"}
+                        onChange={e => updateLayer(key, { shadowColor:e.target.value })}
+                        style={{ width:36, height:30, border:"2px solid rgba(0,0,0,0.15)", borderRadius:6, cursor:"pointer", padding:2 }} />
+                      <span style={{ fontSize:12, color:"#4a6a8a" }}>Shadow color</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Stroke ── */}
+              <div>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+                  <LabelEl style={{ margin:0 }}>Stroke</LabelEl>
+                  <label style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer" }}>
+                    <input type="checkbox" checked={l.strokeEnabled} onChange={e => updateLayer(key, { strokeEnabled:e.target.checked })}
+                      style={{ accentColor:"#1976d2", width:15, height:15 }} />
+                    <span style={{ fontSize:12, color:"#4a6a8a" }}>{l.strokeEnabled ? "On" : "Off"}</span>
+                  </label>
+                </div>
+                {l.strokeEnabled && (
+                  <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                    <div>
+                      <LabelEl>Width — {l.strokeWidth}px</LabelEl>
+                      <input type="range" min={1} max={12} step={0.5} value={l.strokeWidth}
+                        onChange={e => updateLayer(key, { strokeWidth:+e.target.value })} style={{ width:"100%", accentColor:"#1976d2" }} />
+                    </div>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <input type="color" value={l.strokeColor}
+                        onChange={e => updateLayer(key, { strokeColor:e.target.value })}
+                        style={{ width:36, height:30, border:"2px solid rgba(0,0,0,0.15)", borderRadius:6, cursor:"pointer", padding:2 }} />
+                      <span style={{ fontSize:12, color:"#4a6a8a" }}>Stroke color</span>
+                      <code style={{ fontSize:11, color:"#0a1e38", background:"rgba(0,0,0,0.06)", padding:"2px 6px", borderRadius:4 }}>{l.strokeColor.toUpperCase()}</code>
+                    </div>
+                    {/* Corner style */}
+                    <div>
+                      <LabelEl>Corner Style</LabelEl>
+                      <div style={{ display:"flex", borderRadius:8, overflow:"hidden", border:"1.5px solid rgba(25,118,210,0.2)" }}>
+                        <button
+                          onClick={() => updateLayer(key, { strokeRound:false })}
+                          style={{ flex:1, padding:"6px 0", border:"none", fontWeight:700, fontSize:11, textTransform:"uppercase", letterSpacing:"0.5px", cursor:"pointer", background:!l.strokeRound ? "#1976d2" : "transparent", color:!l.strokeRound ? "#fff" : "#4a6a8a", transition:"background 0.15s" }}
+                        >
+                          Sharp
+                        </button>
+                        <button
+                          onClick={() => updateLayer(key, { strokeRound:true })}
+                          style={{ flex:1, padding:"6px 0", border:"none", fontWeight:700, fontSize:11, textTransform:"uppercase", letterSpacing:"0.5px", cursor:"pointer", background:l.strokeRound ? "#1976d2" : "transparent", color:l.strokeRound ? "#fff" : "#4a6a8a", transition:"background 0.15s" }}
+                        >
+                          Round
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
