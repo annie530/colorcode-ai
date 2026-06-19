@@ -4,6 +4,7 @@ import React, { useCallback, useRef, useState } from "react";
 
 interface UploadSectionProps {
   onColorsExtracted: (colors: string[], imageUrl: string) => void;
+  onRemove?: () => void;
 }
 
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
@@ -96,7 +97,7 @@ function isLightColor(hex: string): boolean {
   return 0.299 * r + 0.587 * g + 0.114 * b > 160;
 }
 
-export default function UploadSection({ onColorsExtracted }: UploadSectionProps) {
+export default function UploadSection({ onColorsExtracted, onRemove }: UploadSectionProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -171,6 +172,14 @@ export default function UploadSection({ onColorsExtracted }: UploadSectionProps)
   const handleImageLoad = useCallback(() => {
     // Image is ready; nothing automatic — user clicks Analyse
   }, []);
+
+  const handleRemove = useCallback(() => {
+    setPreviewUrl(null);
+    setFileName(null);
+    setColors([]);
+    setError(null);
+    onRemove?.();
+  }, [onRemove]);
 
   const cardStyle: React.CSSProperties = {
     background: "rgba(210,230,255,0.55)",
@@ -332,9 +341,36 @@ export default function UploadSection({ onColorsExtracted }: UploadSectionProps)
       {/* Preview */}
       {previewUrl && (
         <div style={{ marginBottom: 4 }}>
-          <p style={{ margin: "0 0 8px", fontSize: 13, color: "#1e4060", fontWeight: 500 }}>
-            Preview — <span style={{ fontWeight: 400, opacity: 0.75 }}>{fileName}</span>
-          </p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <p style={{ margin: 0, fontSize: 13, color: "#1e4060", fontWeight: 500 }}>
+              Preview — <span style={{ fontWeight: 400, opacity: 0.75 }}>{fileName}</span>
+            </p>
+            <button
+              onClick={handleRemove}
+              type="button"
+              title="Remove image"
+              style={{
+                display: "flex", alignItems: "center", gap: 5,
+                background: "rgba(198,40,40,0.08)",
+                color: "#c62828",
+                border: "1px solid rgba(198,40,40,0.25)",
+                borderRadius: 7,
+                padding: "4px 10px",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "background 0.15s",
+                flexShrink: 0,
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = "rgba(198,40,40,0.16)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "rgba(198,40,40,0.08)")}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+              Remove
+            </button>
+          </div>
           <div
             style={{
               display: "flex",

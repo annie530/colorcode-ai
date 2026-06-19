@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import type { TextLayersState, TextLayerData } from "./TextDesignerSection";
+import { ctaButtonCss } from "./TextDesignerSection";
 
 const DESIGN_REF_WIDTH = 600;
 
@@ -38,6 +39,18 @@ function DesignComposite({ imageUrl, layers, displayWidth }: {
           }}>{l.text}</div>
         );
       })}
+      {layers?.cta.enabled && (
+        <div style={{
+          position:"absolute", left:`${layers.cta.x}%`, top:`${layers.cta.y}%`,
+          transform:"translate(-50%,-50%)",
+          pointerEvents:"none", userSelect:"none",
+          ...ctaButtonCss(layers.cta),
+          fontSize: layers.cta.fontSize * fontScale,
+          padding: `${8 * fontScale}px ${20 * fontScale}px`,
+        }}>
+          {layers.cta.text || "CTA Button"}
+        </div>
+      )}
     </div>
   );
 }

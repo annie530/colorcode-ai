@@ -25,6 +25,12 @@ export default function UploadPage() {
     setTextLayers(defaultTextLayers());
   }
 
+  function handleRemove() {
+    setUploadedImageUrl(null);
+    setExtractedColors([]);
+    setTextLayers(defaultTextLayers());
+  }
+
   const baseColor = extractedColors[0] ?? "#1976D2";
 
   const blobs = (
@@ -44,7 +50,7 @@ export default function UploadPage() {
 
           <section style={{ width:"100%", padding:"72px 60px" }}>
             <SectionHeader title="Upload Your Design" subtitle="Drop in any image — a brand asset, UI mockup, poster, or photo — and we'll instantly extract the dominant colors driving its visual identity." />
-            <UploadSection onColorsExtracted={handleColorsExtracted} />
+            <UploadSection onColorsExtracted={handleColorsExtracted} onRemove={handleRemove} />
           </section>
 
           {uploadedImageUrl && extractedColors.length > 0 && (
