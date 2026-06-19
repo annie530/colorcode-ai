@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
 import ColorCodeSection from "@/components/sections/ColorCodeSection";
 import PaletteSection from "@/components/sections/PaletteSection";
+import ColorWheelPromoSection from "@/components/sections/ColorWheelPromoSection";
 import { SectionHeader } from "@/components/SectionHeader";
 
 const PAGE_BG = "linear-gradient(160deg, #c8e8ff 0%, #ddeeff 40%, #e8f4ff 100%)";
@@ -40,6 +41,8 @@ export default function Home() {
             />
             <PaletteSection baseColor="#1976D2" />
           </section>
+
+          <ColorWheelPromoSection />
         </main>
         <Footer />
       </div>
